@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import { neon } from '@neondatabase/serverless';
 
 export async function GET(request) {
   try {
@@ -9,13 +9,12 @@ export async function GET(request) {
       return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const limit = searchParams.get('limit') || 50;
+    const sql = neon(process.env.DATABASE_URL);
+    const limit = parseInt(searchParams.get('limit') || '50');
 
-    const result = await sql`
+    const logs = await sql`
       SELECT id, mobile, message, status, response, created_at, sent_at
-      FROM sms_log
-      ORDER BY created_at DESC
-      LIMIT ${limit}
+      FROM sms_log ORDER BY created_at DESC LIMIT ${limit}
     `;
 
     const stats = await sql`
@@ -27,12 +26,7 @@ export async function GET(request) {
       WHERE created_at > NOW() - INTERVAL '24 hours'
     `;
 
-    return Response.json({
-      success: true,
-      stats: stats.rows[0],
-      logs: result.rows
-    });
-
+    return Response.json({ success: true, stats: stats[0], logs });
   } catch (err) {
     return Response.json({ success: false, error: err.message }, { status: 500 });
   }
