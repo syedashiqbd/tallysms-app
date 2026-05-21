@@ -1,21 +1,5 @@
 import { neon } from '@neondatabase/serverless';
 
-async function getDB() {
-  const sql = neon(process.env.DATABASE_URL);
-  await sql`
-    CREATE TABLE IF NOT EXISTS sms_log (
-      id SERIAL PRIMARY KEY,
-      mobile VARCHAR(20) NOT NULL,
-      message TEXT NOT NULL,
-      status VARCHAR(20) DEFAULT 'pending',
-      response TEXT,
-      created_at TIMESTAMP DEFAULT NOW(),
-      sent_at TIMESTAMP
-    )
-  `;
-  return sql;
-}
-
 async function sendSMS(mobile, message) {
   const API_KEY = process.env.ADNSMS_API_KEY;
   const API_SECRET = process.env.ADNSMS_API_SECRET;
@@ -38,7 +22,7 @@ export async function GET(request) {
       return Response.json({ success: false, error: 'mobile and message required' }, { status: 400 });
     }
 
-    const sql = await getDB();
+    const sql = neon(process.env.DATABASE_URL);
     const smsResult = await sendSMS(mobile, message);
     const success = smsResult.api_response_message === 'SUCCESS';
     const status = success ? 'sent' : 'failed';
@@ -67,7 +51,7 @@ export async function POST(request) {
       return Response.json({ success: false, error: 'mobile and message required' }, { status: 400 });
     }
 
-    const sql = await getDB();
+    const sql = neon(process.env.DATABASE_URL);
     const smsResult = await sendSMS(mobile, message);
     const success = smsResult.api_response_message === 'SUCCESS';
     const status = success ? 'sent' : 'failed';
